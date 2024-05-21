@@ -105,21 +105,29 @@ async function run() {
       const flashSaleFile = await cursor.toArray();
       res.send({ status: true, data: flashSaleFile });
     });
+
+    // app.get("/flash-sale/:_id", async (req, res) => {
+    //   const id = req.params._id;
+    //   console.log("getting specific service", id);
+    //   const query = { _id: id };
+    //   const supplies = await cleaningSuppliesStoreCollection.findOne(query);
+    //   res.json(supplies);
+    // });
     // app.post("/relief-goods", async (req, res) => {
     //   const reliefGoods = req.body;
     //   const result = await reliefGoodsCollection.insertOne(reliefGoods);
     //   res.send(result);
     // });
 
-    // app.get("/relief-goods/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   console.log("getting specific service", id);
-    //   const nid = new ObjectId(id);
-    //   const query = { _id: nid };
-    //   const result = await reliefGoodsCollection.findOne(query);
-    //   console.log(result);
-    //   res.send(result);
-    // });
+    app.get("/flash-sale/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log("getting specific service", id);
+      const nid = new ObjectId(id);
+      const query = { _id: nid };
+      const result = await cleaningSuppliesStoreCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
 
     // app.delete("/relief-goods/:id", async (req, res) => {
     //   const id = req.params.id;
