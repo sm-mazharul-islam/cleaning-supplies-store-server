@@ -143,7 +143,7 @@ async function run() {
       console.log("getting specific service", id);
       const nid = new ObjectId(id);
       const query = { _id: nid };
-      const result = await cleaningSuppliesStoreCollection.findOne(query);
+      const result = await productStoreCollection.findOne(query);
       console.log(result);
       res.send(result);
     });
