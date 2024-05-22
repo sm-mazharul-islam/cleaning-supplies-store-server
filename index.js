@@ -132,7 +132,7 @@ async function run() {
     app.get("/flash-sale/:id", async (req, res) => {
       const id = req.params.id;
       console.log("getting specific service", id);
-      const nid = new ObjectId(id);
+      const nid = ObjectId(id);
       const query = { _id: nid };
       const result = await cleaningSuppliesStoreCollection.findOne(query);
       console.log(result);
@@ -141,7 +141,7 @@ async function run() {
     app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
       console.log("getting specific service", id);
-      const nid = new ObjectId(id);
+      const nid = ObjectId(id);
       const query = { _id: nid };
       const result = await productStoreCollection.findOne(query);
       console.log(result);
