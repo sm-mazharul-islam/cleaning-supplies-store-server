@@ -29,6 +29,7 @@ async function run() {
     const db = client.db("cleaning-supplies-store");
     const collection = db.collection("user");
     const cleaningSuppliesStoreCollection = db.collection("flash-sale");
+    const productStoreCollection = db.collection("products");
     // const ourRecentWorksCollection = db.collection("ourRecentlyWorks");
 
     // User Registration
@@ -105,6 +106,15 @@ async function run() {
       const flashSaleFile = await cursor.toArray();
       res.send({ status: true, data: flashSaleFile });
     });
+    app.get("/products", async (req, res) => {
+      // let query = {};
+      // if (req.query.priority) {
+      //   query.priority = req.query.priority;
+      // }
+      const cursor = productStoreCollection.find({});
+      const productsFile = await cursor.toArray();
+      res.send({ status: true, data: productsFile });
+    });
 
     // app.get("/flash-sale/:_id", async (req, res) => {
     //   const id = req.params._id;
@@ -120,6 +130,15 @@ async function run() {
     // });
 
     app.get("/flash-sale/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log("getting specific service", id);
+      const nid = new ObjectId(id);
+      const query = { _id: nid };
+      const result = await cleaningSuppliesStoreCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+    app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
       console.log("getting specific service", id);
       const nid = new ObjectId(id);
