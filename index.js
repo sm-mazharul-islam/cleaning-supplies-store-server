@@ -34,7 +34,7 @@ async function run() {
 
     // User Registration
     app.post("/api/v1/register", async (req, res) => {
-      const { name, email, password } = req.body;
+      const { userName, pictureUrl, email, password } = req.body;
 
       // Check if email already exists
       const existingUser = await collection.findOne({ email });
@@ -49,7 +49,12 @@ async function run() {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Insert user into the database
-      await collection.insertOne({ name, email, password: hashedPassword });
+      await collection.insertOne({
+        userName,
+        pictureUrl,
+        email,
+        password: hashedPassword,
+      });
 
       res.status(201).json({
         success: true,
@@ -106,14 +111,186 @@ async function run() {
       const flashSaleFile = await cursor.toArray();
       res.send({ status: true, data: flashSaleFile });
     });
+
+    //! Here is my older code --->
+    // app.get("/products", async (req, res) => {
+    //   // let query = {};
+    //   // if (req.query.priority) {
+    //   //   query.priority = req.query.priority;
+    //   // }
+    //   const cursor = productStoreCollection.find({});
+    //   const productsFile = await cursor.toArray();
+    //   res.send({ status: true, data: productsFile });
+    // });
+    //!--------------!
+
+    // app.get("/products", async (req, res) => {
+    //   const { brand, rating, salePrice } = req.query;
+    //   console.log("Received query parameters:", { brand, rating, salePrice });
+
+    //   try {
+    //     const cursor = productStoreCollection.find({});
+    //     let products = await cursor.toArray();
+
+    //     if (brand) {
+    //       const brandArray = brand.split(",");
+    //       products = products.filter((product) =>
+    //         brandArray.includes(product.brand)
+    //       );
+    //       console.log("Filtered by brand:", products);
+    //     }
+
+    //     if (rating) {
+    //       const ratingArray = rating.split(",").map(Number);
+    //       products = products.filter((product) =>
+    //         ratingArray.includes(Math.floor(product.rating))
+    //       );
+    //       console.log("Filtered by rating:", products);
+    //     }
+
+    //     if (salePrice) {
+    //       const priceArray = salePrice
+    //         .split(",")
+    //         .map((range) => range.split("-").map(Number));
+    //       products = products.filter((product) => {
+    //         return priceArray.some(
+    //           ([min, max]) =>
+    //             product.salePrice >= min && product.salePrice <= max
+    //         );
+    //       });
+    //       console.log("Filtered by salePrice:", products);
+    //     }
+
+    //     res.json({ data: products });
+    //   } catch (error) {
+    //     console.error("Error fetching products:", error);
+    //     res.status(500).send("Internal Server Error");
+    //   }
+    // });
+
+    //!
+    // app.get("/products", async (req, res) => {
+    //   const { brand, rating, salePrice, page = 1, limit = 10 } = req.query;
+    //   console.log("Received query parameters:", {
+    //     brand,
+    //     rating,
+    //     salePrice,
+    //     page,
+    //     limit,
+    //   });
+
+    //   // Convert page and limit to integers
+    //   const pageInt = parseInt(page);
+    //   const limitInt = parseInt(limit);
+
+    //   const cursor = productStoreCollection.find({});
+    //   const productsFile = await cursor.toArray();
+
+    //   let filteredProducts = productsFile;
+
+    //   if (brand) {
+    //     const brandArray = brand.split(",");
+    //     filteredProducts = filteredProducts.filter((product) =>
+    //       brandArray.includes(product.brand)
+    //     );
+    //     console.log("Filtered by brand:", filteredProducts);
+    //   }
+
+    //   if (rating) {
+    //     const ratingArray = rating.split(",").map(Number);
+    //     filteredProducts = filteredProducts.filter((product) =>
+    //       ratingArray.includes(Math.floor(product.rating))
+    //     );
+    //     console.log("Filtered by rating:", filteredProducts);
+    //   }
+
+    //   if (salePrice) {
+    //     const priceArray = salePrice
+    //       .split(",")
+    //       .map((range) => range.split("-").map(Number));
+    //     filteredProducts = filteredProducts.filter((product) => {
+    //       return priceArray.some(
+    //         ([min, max]) => product.salePrice >= min && product.salePrice <= max
+    //       );
+    //     });
+    //     console.log("Filtered by salePrice:", filteredProducts);
+    //   }
+
+    //   // Pagination
+    //   const startIndex = (pageInt - 1) * limitInt;
+    //   const endIndex = startIndex + limitInt;
+    //   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+    //   res.json({ data: paginatedProducts, total: filteredProducts.length });
+    // });
+    //!
+
     app.get("/products", async (req, res) => {
-      // let query = {};
-      // if (req.query.priority) {
-      //   query.priority = req.query.priority;
-      // }
+      const {
+        brand,
+        rating,
+        salePrice,
+        page = 1,
+        limit = 10,
+        searchQuery,
+      } = req.query;
+      console.log("Received query parameters:", {
+        brand,
+        rating,
+        salePrice,
+        page,
+        limit,
+        searchQuery,
+      });
+
+      const pageInt = parseInt(page);
+      const limitInt = parseInt(limit);
+
       const cursor = productStoreCollection.find({});
       const productsFile = await cursor.toArray();
-      res.send({ status: true, data: productsFile });
+
+      let filteredProducts = productsFile;
+
+      if (brand) {
+        const brandArray = brand.split(",");
+        filteredProducts = filteredProducts.filter((product) =>
+          brandArray.includes(product.brand)
+        );
+        console.log("Filtered by brand:", filteredProducts);
+      }
+
+      if (rating) {
+        const ratingArray = rating.split(",").map(Number);
+        filteredProducts = filteredProducts.filter((product) =>
+          ratingArray.includes(Math.floor(product.rating))
+        );
+        console.log("Filtered by rating:", filteredProducts);
+      }
+
+      if (salePrice) {
+        const priceArray = salePrice
+          .split(",")
+          .map((range) => range.split("-").map(Number));
+        filteredProducts = filteredProducts.filter((product) => {
+          return priceArray.some(
+            ([min, max]) => product.salePrice >= min && product.salePrice <= max
+          );
+        });
+        console.log("Filtered by salePrice:", filteredProducts);
+      }
+
+      if (searchQuery) {
+        filteredProducts = filteredProducts.filter((product) =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        console.log("Filtered by searchQuery:", filteredProducts);
+      }
+
+      const startIndex = (pageInt - 1) * limitInt;
+      const endIndex = startIndex + limitInt;
+      const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+      res.json({ data: paginatedProducts, total: filteredProducts.length });
     });
 
     // app.get("/flash-sale/:_id", async (req, res) => {
