@@ -30,59 +30,152 @@ async function run() {
     const collection = db.collection("user");
     const cleaningSuppliesStoreCollection = db.collection("flash-sale");
     const productStoreCollection = db.collection("products");
-    // const ourRecentWorksCollection = db.collection("ourRecentlyWorks");
+    const commentsCollection = db.collection("comments");
 
-    // User Registration
-    app.post("/api/v1/register", async (req, res) => {
-      const { userName, pictureUrl, email, password } = req.body;
+    // 1. POST: Create a new Comment
+    // backend/server.js
+    app.post("/api/v1/comments", async (req, res) => {
+      try {
+        // ফ্রন্টএন্ড থেকে আসা 'userName' রিসিভ করা হচ্ছে
+        const { userName, pictureUrl, comment, productId } = req.body;
 
-      // Check if email already exists
-      const existingUser = await collection.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "User already exists",
+        const newComment = {
+          userName, // এখানে বানানটি ডাটাবেজের ফিল্ডের সাথে মিলানো হলো
+          pictureUrl: pictureUrl || "",
+          comment,
+          productId: new ObjectId(productId),
+          replies: [],
+          createdAt: new Date(),
+          isDeleted: false,
+        };
+
+        const result = await commentsCollection.insertOne(newComment);
+        res.status(201).send({
+          success: true,
+          data: { ...newComment, _id: result.insertedId },
         });
+      } catch (error) {
+        res.status(500).send({ success: false, message: error.message });
       }
-
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Insert user into the database
-      await collection.insertOne({
-        userName,
-        pictureUrl,
-        email,
-        password: hashedPassword,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-      });
     });
 
+    // 2. GET: Fetch comments for a specific product
+    app.get("/api/v1/comments/:productId", async (req, res) => {
+      const query = {
+        productId: new ObjectId(req.params.productId),
+        isDeleted: false,
+      };
+      const result = await commentsCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.send({ success: true, data: result });
+    });
+
+    // 3. PATCH: Add a reply to an existing comment
+    app.patch("/api/v1/comments/reply/:commentId", async (req, res) => {
+      try {
+        const { userName, pictureUrl, comment } = req.body;
+        const commentId = req.params.commentId;
+
+        const newReply = {
+          replyId: new ObjectId(), // Unique ID for the reply
+          userName,
+          pictureUrl,
+          comment,
+          createdAt: new Date(),
+        };
+
+        const filter = { _id: new ObjectId(commentId) };
+        const updateDoc = {
+          $push: { replies: newReply },
+        };
+
+        const result = await commentsCollection.updateOne(filter, updateDoc);
+        res.send({ success: true, message: "Reply added", data: newReply });
+      } catch (error) {
+        res.status(500).send({ success: false, message: error.message });
+      }
+    });
+
+    // User Registration
+    // Registration Route
+    app.post("/api/v1/register", async (req, res) => {
+      try {
+        const { userName, pictureUrl, email, password } = req.body;
+
+        // 1. Validation
+        if (!email || !password) {
+          return res
+            .status(400)
+            .json({ success: false, message: "Email and Password required" });
+        }
+
+        // 2. Check if email already exists
+        const existingUser = await collection.findOne({ email });
+        if (existingUser) {
+          return res.status(400).json({
+            success: false,
+            message: "User already exists with this email",
+          });
+        }
+
+        // 3. Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Insert user
+        const result = await collection.insertOne({
+          userName,
+          pictureUrl,
+          email,
+          password: hashedPassword,
+          createdAt: new Date(),
+        });
+
+        res.status(201).json({
+          success: true,
+          message: "User registered successfully",
+          userId: result.insertedId,
+        });
+      } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+      }
+    });
     // User Login
     app.post("/api/v1/login", async (req, res) => {
       const { email, password } = req.body;
 
-      // Find user by email
+      // ১. ইমেইল দিয়ে ইউজার খুঁজুন
       const user = await collection.findOne({ email });
       if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid email or password" });
       }
 
-      // Compare hashed password
+      // ২. পাসওয়ার্ড চেক করুন
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid email or password" });
       }
 
-      // Generate JWT token
-      const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
-        expiresIn: process.env.EXPIRES_IN,
-      });
+      // ৩. JWT টোকেন তৈরি (এখানেই আসল পরিবর্তন)
+      // payload-এ userName এবং pictureUrl যোগ করা হলো
+      const token = jwt.sign(
+        {
+          email: user.email,
+          userName: user.userName, // ডাটাবেজে আপনার ফিল্ডের নাম যা আছে সেটি লিখুন
+          pictureUrl: user.pictureUrl || "", // ছবি না থাকলে খালি স্ট্রিং
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.EXPIRES_IN || "7d",
+        },
+      );
 
+      // ৪. রেসপন্স পাঠানো
       res.json({
         success: true,
         message: "Login successful",
@@ -90,140 +183,37 @@ async function run() {
       });
     });
 
-    // ======================================================
-    // WRITE YOUR CODE HERE
-
-    // app.get("/our-recent-works", async (req, res) => {
-    //   // let query = {};
-    //   // if (req.query.priority) {
-    //   //   query.priority = req.query.priority;
-    //   // }
-    //   const cursor = ourRecentWorksCollection.find({});
-    //   const ourRecentWorksFile = await cursor.toArray();
-    //   res.send({ status: true, data: ourRecentWorksFile });
-    // });
     app.get("/flash-sale", async (req, res) => {
-      // let query = {};
-      // if (req.query.priority) {
-      //   query.priority = req.query.priority;
-      // }
       const cursor = cleaningSuppliesStoreCollection.find({});
       const flashSaleFile = await cursor.toArray();
       res.send({ status: true, data: flashSaleFile });
     });
 
-    //! Here is my older code --->
-    // app.get("/products", async (req, res) => {
-    //   // let query = {};
-    //   // if (req.query.priority) {
-    //   //   query.priority = req.query.priority;
-    //   // }
-    //   const cursor = productStoreCollection.find({});
-    //   const productsFile = await cursor.toArray();
-    //   res.send({ status: true, data: productsFile });
-    // });
-    //!--------------!
+    // একটি নির্দিষ্ট ফ্ল্যাশ সেল প্রোডাক্ট পাওয়ার রাউট
+    app.get("/flash-sale/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
 
-    // app.get("/products", async (req, res) => {
-    //   const { brand, rating, salePrice } = req.query;
-    //   console.log("Received query parameters:", { brand, rating, salePrice });
+        // MongoDB ID চেক করা (ভুল আইডি দিলে যাতে সার্ভার ক্রাশ না করে)
+        const query = { _id: new ObjectId(id) };
 
-    //   try {
-    //     const cursor = productStoreCollection.find({});
-    //     let products = await cursor.toArray();
+        const result = await cleaningSuppliesStoreCollection.findOne(query);
 
-    //     if (brand) {
-    //       const brandArray = brand.split(",");
-    //       products = products.filter((product) =>
-    //         brandArray.includes(product.brand)
-    //       );
-    //       console.log("Filtered by brand:", products);
-    //     }
+        if (!result) {
+          return res
+            .status(404)
+            .send({ status: false, message: "Product not found" });
+        }
 
-    //     if (rating) {
-    //       const ratingArray = rating.split(",").map(Number);
-    //       products = products.filter((product) =>
-    //         ratingArray.includes(Math.floor(product.rating))
-    //       );
-    //       console.log("Filtered by rating:", products);
-    //     }
-
-    //     if (salePrice) {
-    //       const priceArray = salePrice
-    //         .split(",")
-    //         .map((range) => range.split("-").map(Number));
-    //       products = products.filter((product) => {
-    //         return priceArray.some(
-    //           ([min, max]) =>
-    //             product.salePrice >= min && product.salePrice <= max
-    //         );
-    //       });
-    //       console.log("Filtered by salePrice:", products);
-    //     }
-
-    //     res.json({ data: products });
-    //   } catch (error) {
-    //     console.error("Error fetching products:", error);
-    //     res.status(500).send("Internal Server Error");
-    //   }
-    // });
-
-    //!
-    // app.get("/products", async (req, res) => {
-    //   const { brand, rating, salePrice, page = 1, limit = 10 } = req.query;
-    //   console.log("Received query parameters:", {
-    //     brand,
-    //     rating,
-    //     salePrice,
-    //     page,
-    //     limit,
-    //   });
-
-    //   // Convert page and limit to integers
-    //   const pageInt = parseInt(page);
-    //   const limitInt = parseInt(limit);
-
-    //   const cursor = productStoreCollection.find({});
-    //   const productsFile = await cursor.toArray();
-
-    //   let filteredProducts = productsFile;
-
-    //   if (brand) {
-    //     const brandArray = brand.split(",");
-    //     filteredProducts = filteredProducts.filter((product) =>
-    //       brandArray.includes(product.brand)
-    //     );
-    //     console.log("Filtered by brand:", filteredProducts);
-    //   }
-
-    //   if (rating) {
-    //     const ratingArray = rating.split(",").map(Number);
-    //     filteredProducts = filteredProducts.filter((product) =>
-    //       ratingArray.includes(Math.floor(product.rating))
-    //     );
-    //     console.log("Filtered by rating:", filteredProducts);
-    //   }
-
-    //   if (salePrice) {
-    //     const priceArray = salePrice
-    //       .split(",")
-    //       .map((range) => range.split("-").map(Number));
-    //     filteredProducts = filteredProducts.filter((product) => {
-    //       return priceArray.some(
-    //         ([min, max]) => product.salePrice >= min && product.salePrice <= max
-    //       );
-    //     });
-    //     console.log("Filtered by salePrice:", filteredProducts);
-    //   }
-
-    //   // Pagination
-    //   const startIndex = (pageInt - 1) * limitInt;
-    //   const endIndex = startIndex + limitInt;
-    //   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-
-    //   res.json({ data: paginatedProducts, total: filteredProducts.length });
-    // });
-    //!
+        res.send({ status: true, data: result });
+      } catch (error) {
+        res.status(500).send({
+          status: false,
+          message: "Internal Server Error",
+          error: error.message,
+        });
+      }
+    });
 
     app.get("/products", async (req, res) => {
       const {
@@ -254,7 +244,7 @@ async function run() {
       if (brand) {
         const brandArray = brand.split(",");
         filteredProducts = filteredProducts.filter((product) =>
-          brandArray.includes(product.brand)
+          brandArray.includes(product.brand),
         );
         console.log("Filtered by brand:", filteredProducts);
       }
@@ -262,7 +252,7 @@ async function run() {
       if (rating) {
         const ratingArray = rating.split(",").map(Number);
         filteredProducts = filteredProducts.filter((product) =>
-          ratingArray.includes(Math.floor(product.rating))
+          ratingArray.includes(Math.floor(product.rating)),
         );
         console.log("Filtered by rating:", filteredProducts);
       }
@@ -273,7 +263,8 @@ async function run() {
           .map((range) => range.split("-").map(Number));
         filteredProducts = filteredProducts.filter((product) => {
           return priceArray.some(
-            ([min, max]) => product.salePrice >= min && product.salePrice <= max
+            ([min, max]) =>
+              product.salePrice >= min && product.salePrice <= max,
           );
         });
         console.log("Filtered by salePrice:", filteredProducts);
@@ -281,7 +272,7 @@ async function run() {
 
       if (searchQuery) {
         filteredProducts = filteredProducts.filter((product) =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase())
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()),
         );
         console.log("Filtered by searchQuery:", filteredProducts);
       }
@@ -292,19 +283,6 @@ async function run() {
 
       res.json({ data: paginatedProducts, total: filteredProducts.length });
     });
-
-    // app.get("/flash-sale/:_id", async (req, res) => {
-    //   const id = req.params._id;
-    //   console.log("getting specific service", id);
-    //   const query = { _id: id };
-    //   const supplies = await cleaningSuppliesStoreCollection.findOne(query);
-    //   res.json(supplies);
-    // });
-    // app.post("/relief-goods", async (req, res) => {
-    //   const reliefGoods = req.body;
-    //   const result = await reliefGoodsCollection.insertOne(reliefGoods);
-    //   res.send(result);
-    // });
 
     app.get("/flash-sale/:id", async (req, res) => {
       const id = req.params.id;
