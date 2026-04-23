@@ -10,15 +10,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(
-  cors({
-    origin: [
-      "https://cleaning-supplies-store-0.vercel.app",
-      "http://localhost:3000",
-    ],
-    credentials: true,
-  }),
-);
+app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection URL
