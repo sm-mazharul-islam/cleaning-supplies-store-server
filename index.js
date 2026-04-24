@@ -110,7 +110,6 @@ app.post("/api/v1/login", async (req, res) => {
         .json({ success: false, message: "Invalid password" });
     }
 
-    // আপনার লগইন রাউটের ভেতর এই অংশটি চেক করুন
     const token = jwt.sign(
       {
         email: user.email,
@@ -140,24 +139,20 @@ app.get("/products", async (req, res) => {
       searchQuery,
     } = req.query;
 
-    // মঙ্গোডিবি থেকে সব ডাটা আনা
     const products = await db.collection("products").find({}).toArray();
     let filtered = products;
 
-    // ১. সার্চ ফিল্টার
     if (searchQuery && searchQuery.trim() !== "") {
       filtered = filtered.filter((p) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
-    // ২. ব্র্যান্ড ফিল্টার (খালি স্ট্রিং চেক করা হয়েছে)
     if (brand && brand.trim() !== "" && brand !== "undefined") {
       const brandArray = brand.split(",");
       filtered = filtered.filter((p) => brandArray.includes(p.brand));
     }
 
-    // ৩. রেটিং ফিল্টার
     if (rating && rating.trim() !== "" && rating !== "undefined") {
       const ratingArray = rating.split(",").map(Number);
       filtered = filtered.filter((p) =>
@@ -165,7 +160,6 @@ app.get("/products", async (req, res) => {
       );
     }
 
-    // ৪. প্রাইস রেঞ্জ ফিল্টার
     if (salePrice && salePrice.trim() !== "" && salePrice !== "undefined") {
       const ranges = salePrice.split(",").map((r) => r.split("-").map(Number));
       filtered = filtered.filter((p) =>
@@ -173,7 +167,6 @@ app.get("/products", async (req, res) => {
       );
     }
 
-    // ৫. পেজিনেশন
     const p = parseInt(page) || 1;
     const l = parseInt(limit) || 10;
     const startIndex = (p - 1) * l;
@@ -182,6 +175,42 @@ app.get("/products", async (req, res) => {
     res.json({ data: result, total: filtered.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+app.post("/products", async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const productData = req.body;
+
+    if (!productData.title || !productData.salePrice || !productData.image) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, Price, and Image are required!",
+      });
+    }
+
+    const newProduct = {
+      ...productData,
+      rating: parseFloat(productData.rating) || 0,
+      originalPrice: parseFloat(productData.originalPrice) || 0,
+      salePrice: parseFloat(productData.salePrice) || 0,
+      createdAt: new Date(),
+    };
+
+    const result = await db.collection("products").insertOne(newProduct);
+
+    res.status(201).json({
+      success: true,
+      message: "Product added successfully!",
+      data: { ...newProduct, _id: result.insertedId },
+    });
+  } catch (err) {
+    console.error("Product Post Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 });
 // 5. Flash Sale Route
@@ -239,6 +268,37 @@ app.get("/products/:id", async (req, res) => {
     res.send(result);
   } catch (err) {
     res.status(500).send({ message: err.message });
+  }
+});
+
+app.patch("/products/:id", async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const id = req.params.id;
+    const updateInfo = req.body;
+
+    const result = await db
+      .collection("products")
+      .updateOne({ _id: new ObjectId(id) }, { $set: updateInfo });
+
+    res.send({ success: true, message: "Updated!" });
+  } catch (error) {
+    res.status(500).send({ success: false, message: error.message });
+  }
+});
+
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const id = req.params.id;
+
+    const result = await db.collection("products").deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.send({ success: true, message: "Deleted!" });
+  } catch (error) {
+    res.status(500).send({ success: false, message: error.message });
   }
 });
 
