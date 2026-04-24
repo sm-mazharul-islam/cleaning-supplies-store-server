@@ -9,32 +9,16 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// CORS কনফিগারেশন
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "https://cleaning-supplies-store-0.vercel.app", // আপনার ফ্রন্টেন্ডের আসল লিঙ্কটি এখানে দিন
-  ],
-  credentials: true,
-  optionSuccessStatus: 200,
-};
+// সব ডোমেইন এলাউ করে দিন (এটি ডেভলপমেন্টের জন্য সবথেকে সেইফ)
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
 
-app.use(cors(corsOptions));
-
-// এটি খুবই গুরুত্বপূর্ণ: OPTIONS রিকোয়েস্ট হ্যান্ডেল করা
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// প্রি-ফ্লাইট (OPTIONS) রিকোয়েস্ট হ্যান্ডেল করা
+app.options("*", cors());
 app.use(express.json());
 
 // MongoDB Connection URL
