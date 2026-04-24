@@ -9,13 +9,20 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware
 app.use(
   cors({
-    origin: true, // এটি আপনার সব ডোমেইনকে (লোকাল এবং লাইভ) অনুমতি দেবে
+    origin: [
+      "http://localhost:3000",
+      "https://cleaning-supplies-store-0.vercel.app", // আপনার ফ্রন্টেন্ডের আসল লিঙ্কটি এখানে দিন
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+// OPTIONS রিকোয়েস্ট হ্যান্ডেল করা (CORS এর জন্য জরুরি)
+app.options("*", cors());
 app.use(express.json());
 
 // MongoDB Connection URL
@@ -138,12 +145,10 @@ async function run() {
 
         const existingUser = await collection.findOne({ email });
         if (existingUser) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: "User already exists with this email",
-            });
+          return res.status(400).json({
+            success: false,
+            message: "User already exists with this email",
+          });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
