@@ -254,6 +254,39 @@ app.get("/flash-sale/:id", async (req, res) => {
   }
 });
 
+// Backend: index.js
+app.patch("/api/v1/comments/reply/:commentId", async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const { userName, pictureUrl, comment } = req.body;
+
+    const newReply = {
+      userName,
+      pictureUrl,
+      comment,
+      createdAt: new Date(),
+    };
+
+    // নির্দিষ্ট কমেন্টের replies অ্যারেতে নতুন অবজেক্ট পুশ করা
+    const result = await db
+      .collection("comments")
+      .updateOne(
+        { _id: new ObjectId(req.params.commentId) },
+        { $push: { replies: newReply } },
+      );
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .send({ success: false, message: "Comment not found" });
+    }
+
+    res.send({ success: true, data: newReply });
+  } catch (err) {
+    res.status(500).send({ success: false, message: err.message });
+  }
+});
+
 // --- Vercel Export ---
 module.exports = app;
 
