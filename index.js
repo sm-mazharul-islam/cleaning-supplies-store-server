@@ -128,7 +128,7 @@ app.post("/api/v1/login", async (req, res) => {
 });
 
 // 4. Products Route (Search, Filter, Pagination)
-app.get("/api/v1/products", async (req, res) => {
+app.get("/products", async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const {
@@ -139,34 +139,51 @@ app.get("/api/v1/products", async (req, res) => {
       limit = 10,
       searchQuery,
     } = req.query;
-    const collection = db.collection("products");
 
-    let query = {};
-    if (searchQuery) query.name = { $regex: searchQuery, $options: "i" };
-
-    const products = await collection.find(query).toArray();
+    // মঙ্গোডিবি থেকে সব ডাটা আনা
+    const products = await db.collection("products").find({}).toArray();
     let filtered = products;
 
-    if (brand)
-      filtered = filtered.filter((p) => brand.split(",").includes(p.brand));
-    if (rating)
+    // ১. সার্চ ফিল্টার
+    if (searchQuery && searchQuery.trim() !== "") {
       filtered = filtered.filter((p) =>
-        rating.split(",").map(Number).includes(Math.floor(p.rating)),
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
-    if (salePrice) {
+    }
+
+    // ২. ব্র্যান্ড ফিল্টার (খালি স্ট্রিং চেক করা হয়েছে)
+    if (brand && brand.trim() !== "" && brand !== "undefined") {
+      const brandArray = brand.split(",");
+      filtered = filtered.filter((p) => brandArray.includes(p.brand));
+    }
+
+    // ৩. রেটিং ফিল্টার
+    if (rating && rating.trim() !== "" && rating !== "undefined") {
+      const ratingArray = rating.split(",").map(Number);
+      filtered = filtered.filter((p) =>
+        ratingArray.includes(Math.floor(p.rating)),
+      );
+    }
+
+    // ৪. প্রাইস রেঞ্জ ফিল্টার
+    if (salePrice && salePrice.trim() !== "" && salePrice !== "undefined") {
       const ranges = salePrice.split(",").map((r) => r.split("-").map(Number));
       filtered = filtered.filter((p) =>
         ranges.some(([min, max]) => p.salePrice >= min && p.salePrice <= max),
       );
     }
 
-    const result = filtered.slice((page - 1) * limit, page * limit);
+    // ৫. পেজিনেশন
+    const p = parseInt(page) || 1;
+    const l = parseInt(limit) || 10;
+    const startIndex = (p - 1) * l;
+    const result = filtered.slice(startIndex, startIndex + l);
+
     res.json({ data: result, total: filtered.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 // 5. Flash Sale Route
 app.get("/flash-sale", async (req, res) => {
   try {
