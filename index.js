@@ -128,7 +128,7 @@ app.post("/api/v1/login", async (req, res) => {
 });
 
 // 4. Products Route (Search, Filter, Pagination)
-app.get("/products", async (req, res) => {
+app.get("/api/v1/products", async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const {
