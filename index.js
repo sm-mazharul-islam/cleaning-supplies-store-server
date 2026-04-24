@@ -79,13 +79,11 @@ app.post("/api/v1/register", async (req, res) => {
       createdAt: new Date(),
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "User registered",
-        userId: result.insertedId,
-      });
+    res.status(201).json({
+      success: true,
+      message: "User registered",
+      userId: result.insertedId,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -112,13 +110,14 @@ app.post("/api/v1/login", async (req, res) => {
         .json({ success: false, message: "Invalid password" });
     }
 
+    // আপনার লগইন রাউটের ভেতর এই অংশটি চেক করুন
     const token = jwt.sign(
       {
         email: user.email,
         userName: user.userName,
         pictureUrl: user.pictureUrl || "",
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "fallback_secret_for_dev", // এখানে একটি ডিফল্ট ভ্যালু দিন
       { expiresIn: process.env.EXPIRES_IN || "7d" },
     );
 
