@@ -9,20 +9,32 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://cleaning-supplies-store-0.vercel.app", // আপনার ফ্রন্টেন্ডের আসল লিঙ্কটি এখানে দিন
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+// CORS কনফিগারেশন
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "https://cleaning-supplies-store-0.vercel.app", // আপনার ফ্রন্টেন্ডের আসল লিঙ্কটি এখানে দিন
+  ],
+  credentials: true,
+  optionSuccessStatus: 200,
+};
 
-// OPTIONS রিকোয়েস্ট হ্যান্ডেল করা (CORS এর জন্য জরুরি)
-app.options("*", cors());
+app.use(cors(corsOptions));
+
+// এটি খুবই গুরুত্বপূর্ণ: OPTIONS রিকোয়েস্ট হ্যান্ডেল করা
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(express.json());
 
 // MongoDB Connection URL
