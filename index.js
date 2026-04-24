@@ -12,9 +12,8 @@ const port = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: true, // এটি সব অরিজিনকে অটোমেটিক এলাউ করবে
+    origin: true, // এটি আপনার সব ডোমেইনকে (লোকাল এবং লাইভ) অনুমতি দেবে
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   }),
 );
 app.use(express.json());
