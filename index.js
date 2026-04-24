@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { MongoClient, ObjectId } = require("mongodb");
 
 require("dotenv").config();
@@ -19,11 +19,30 @@ app.use(
 app.use(express.json());
 
 // MongoDB Connection URL
-const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// const uri = process.env.MONGODB_URI;
+// const client = new MongoClient(uri, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// });
+
+// index.js এর একদম ওপরের দিকে
+let cachedClient = null;
+
+async function connectToDatabase() {
+  if (
+    cachedClient &&
+    cachedClient.topology &&
+    cachedClient.topology.isConnected()
+  ) {
+    return cachedClient;
+  }
+
+  // process.env.MONGODB_URI অবশ্যই আপনার Vercel Dashboard-এ সেট থাকতে হবে
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  cachedClient = client;
+  return client;
+}
 
 async function run() {
   try {
@@ -103,32 +122,32 @@ async function run() {
       }
     });
 
-    // User Registration
     // Registration Route
     app.post("/api/v1/register", async (req, res) => {
       try {
+        const { db } = await connectToDatabase();
+        const collection = db.collection("users");
+
         const { userName, pictureUrl, email, password } = req.body;
 
-        // 1. Validation
         if (!email || !password) {
           return res
             .status(400)
             .json({ success: false, message: "Email and Password required" });
         }
 
-        // 2. Check if email already exists
         const existingUser = await collection.findOne({ email });
         if (existingUser) {
-          return res.status(400).json({
-            success: false,
-            message: "User already exists with this email",
-          });
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message: "User already exists with this email",
+            });
         }
 
-        // 3. Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Insert user
         const result = await collection.insertOne({
           userName,
           pictureUrl,
@@ -146,47 +165,133 @@ async function run() {
         res.status(500).json({ success: false, message: err.message });
       }
     });
-    // User Login
+
+    // Login Route
     app.post("/api/v1/login", async (req, res) => {
-      const { email, password } = req.body;
+      try {
+        const { db } = await connectToDatabase();
+        const collection = db.collection("users");
 
-      // ১. ইমেইল দিয়ে ইউজার খুঁজুন
-      const user = await collection.findOne({ email });
-      if (!user) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid email or password" });
+        const { email, password } = req.body;
+
+        const user = await collection.findOne({ email });
+        if (!user) {
+          return res
+            .status(401)
+            .json({ success: false, message: "Invalid email or password" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          return res
+            .status(401)
+            .json({ success: false, message: "Invalid email or password" });
+        }
+
+        const token = jwt.sign(
+          {
+            email: user.email,
+            userName: user.userName,
+            pictureUrl: user.pictureUrl || "",
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.EXPIRES_IN || "7d" },
+        );
+
+        res.json({
+          success: true,
+          message: "Login successful",
+          token,
+        });
+      } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
       }
-
-      // ২. পাসওয়ার্ড চেক করুন
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid email or password" });
-      }
-
-      // ৩. JWT টোকেন তৈরি (এখানেই আসল পরিবর্তন)
-      // payload-এ userName এবং pictureUrl যোগ করা হলো
-      const token = jwt.sign(
-        {
-          email: user.email,
-          userName: user.userName, // ডাটাবেজে আপনার ফিল্ডের নাম যা আছে সেটি লিখুন
-          pictureUrl: user.pictureUrl || "", // ছবি না থাকলে খালি স্ট্রিং
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: process.env.EXPIRES_IN || "7d",
-        },
-      );
-
-      // ৪. রেসপন্স পাঠানো
-      res.json({
-        success: true,
-        message: "Login successful",
-        token,
-      });
     });
+
+    // // User Registration
+    // // Registration Route
+    // app.post("/api/v1/register", async (req, res) => {
+    //   try {
+    //     const { userName, pictureUrl, email, password } = req.body;
+
+    //     // 1. Validation
+    //     if (!email || !password) {
+    //       return res
+    //         .status(400)
+    //         .json({ success: false, message: "Email and Password required" });
+    //     }
+
+    //     // 2. Check if email already exists
+    //     const existingUser = await collection.findOne({ email });
+    //     if (existingUser) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: "User already exists with this email",
+    //       });
+    //     }
+
+    //     // 3. Hash the password
+    //     const hashedPassword = await bcrypt.hash(password, 10);
+
+    //     // 4. Insert user
+    //     const result = await collection.insertOne({
+    //       userName,
+    //       pictureUrl,
+    //       email,
+    //       password: hashedPassword,
+    //       createdAt: new Date(),
+    //     });
+
+    //     res.status(201).json({
+    //       success: true,
+    //       message: "User registered successfully",
+    //       userId: result.insertedId,
+    //     });
+    //   } catch (err) {
+    //     res.status(500).json({ success: false, message: err.message });
+    //   }
+    // });
+    // // User Login
+    // app.post("/api/v1/login", async (req, res) => {
+    //   const { email, password } = req.body;
+
+    //   // ১. ইমেইল দিয়ে ইউজার খুঁজুন
+    //   const user = await collection.findOne({ email });
+    //   if (!user) {
+    //     return res
+    //       .status(401)
+    //       .json({ success: false, message: "Invalid email or password" });
+    //   }
+
+    //   // ২. পাসওয়ার্ড চেক করুন
+    //   const isPasswordValid = await bcrypt.compare(password, user.password);
+    //   if (!isPasswordValid) {
+    //     return res
+    //       .status(401)
+    //       .json({ success: false, message: "Invalid email or password" });
+    //   }
+
+    //   // ৩. JWT টোকেন তৈরি (এখানেই আসল পরিবর্তন)
+    //   // payload-এ userName এবং pictureUrl যোগ করা হলো
+    //   const token = jwt.sign(
+    //     {
+    //       email: user.email,
+    //       userName: user.userName, // ডাটাবেজে আপনার ফিল্ডের নাম যা আছে সেটি লিখুন
+    //       pictureUrl: user.pictureUrl || "", // ছবি না থাকলে খালি স্ট্রিং
+    //     },
+    //     process.env.JWT_SECRET,
+    //     {
+    //       expiresIn: process.env.EXPIRES_IN || "7d",
+    //     },
+    //   );
+
+    //   // ৪. রেসপন্স পাঠানো
+    //   res.json({
+    //     success: true,
+    //     message: "Login successful",
+    //     token,
+    //   });
+    // });
 
     app.get("/flash-sale", async (req, res) => {
       const cursor = cleaningSuppliesStoreCollection.find({});
