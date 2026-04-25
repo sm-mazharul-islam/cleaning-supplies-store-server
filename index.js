@@ -142,24 +142,30 @@ app.get("/products", async (req, res) => {
     const products = await db.collection("products").find({}).toArray();
     let filtered = products;
 
+    // 🔍 Search Logic (Supports both 'title' and 'name' properties)
     if (searchQuery && searchQuery.trim() !== "") {
       filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        (p.title || p.name || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()),
       );
     }
 
+    // 🏷️ Brand Filter
     if (brand && brand.trim() !== "" && brand !== "undefined") {
       const brandArray = brand.split(",");
       filtered = filtered.filter((p) => brandArray.includes(p.brand));
     }
 
+    // ⭐ Rating Filter
     if (rating && rating.trim() !== "" && rating !== "undefined") {
       const ratingArray = rating.split(",").map(Number);
       filtered = filtered.filter((p) =>
-        ratingArray.includes(Math.floor(p.rating)),
+        ratingArray.includes(Math.floor(p.rating || 0)),
       );
     }
 
+    // 💰 Price Range Filter
     if (salePrice && salePrice.trim() !== "" && salePrice !== "undefined") {
       const ranges = salePrice.split(",").map((r) => r.split("-").map(Number));
       filtered = filtered.filter((p) =>
@@ -167,17 +173,22 @@ app.get("/products", async (req, res) => {
       );
     }
 
+    // 📄 Pagination Logic
     const p = parseInt(page) || 1;
     const l = parseInt(limit) || 10;
     const startIndex = (p - 1) * l;
     const result = filtered.slice(startIndex, startIndex + l);
 
-    res.json({ data: result, total: filtered.length });
+    res.json({
+      success: true,
+      data: result,
+      total: filtered.length,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Database Error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
-
 app.post("/products", async (req, res) => {
   try {
     const { db } = await connectToDatabase();
