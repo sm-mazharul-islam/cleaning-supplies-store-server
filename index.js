@@ -129,7 +129,7 @@ app.post("/api/v1/login", async (req, res) => {
 // 4. Products Route (Search, Filter, Pagination)
 app.get("/products", async (req, res) => {
   try {
-    const { db } = await connectToDatabase();
+    const db = await connectToDatabase();
     const {
       brand,
       rating,
@@ -142,7 +142,7 @@ app.get("/products", async (req, res) => {
     const products = await db.collection("products").find({}).toArray();
     let filtered = products;
 
-    // 🔍 Search Logic (Supports both 'title' and 'name' properties)
+    // Filter by search (Handling both 'title' and 'name')
     if (searchQuery && searchQuery.trim() !== "") {
       filtered = filtered.filter((p) =>
         (p.title || p.name || "")
@@ -151,41 +151,20 @@ app.get("/products", async (req, res) => {
       );
     }
 
-    // 🏷️ Brand Filter
+    // Filter by Brand
     if (brand && brand.trim() !== "" && brand !== "undefined") {
       const brandArray = brand.split(",");
       filtered = filtered.filter((p) => brandArray.includes(p.brand));
     }
 
-    // ⭐ Rating Filter
-    if (rating && rating.trim() !== "" && rating !== "undefined") {
-      const ratingArray = rating.split(",").map(Number);
-      filtered = filtered.filter((p) =>
-        ratingArray.includes(Math.floor(p.rating || 0)),
-      );
-    }
-
-    // 💰 Price Range Filter
-    if (salePrice && salePrice.trim() !== "" && salePrice !== "undefined") {
-      const ranges = salePrice.split(",").map((r) => r.split("-").map(Number));
-      filtered = filtered.filter((p) =>
-        ranges.some(([min, max]) => p.salePrice >= min && p.salePrice <= max),
-      );
-    }
-
-    // 📄 Pagination Logic
+    // Pagination
     const p = parseInt(page) || 1;
     const l = parseInt(limit) || 10;
     const startIndex = (p - 1) * l;
     const result = filtered.slice(startIndex, startIndex + l);
 
-    res.json({
-      success: true,
-      data: result,
-      total: filtered.length,
-    });
+    res.json({ success: true, data: result, total: filtered.length });
   } catch (err) {
-    console.error("Database Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
