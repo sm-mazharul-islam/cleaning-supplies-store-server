@@ -35,7 +35,7 @@ async function connectToDatabase() {
   });
 
   await client.connect();
-  // নিশ্চিত করুন আপনার MongoDB Atlas-এ ডাটাবেসের নাম এটাই কি না
+
   const db = client.db("cleaning-supplies-store");
 
   cachedClient = client;
@@ -126,23 +126,18 @@ app.post("/api/v1/login", async (req, res) => {
   }
 });
 
-// 4. Products Route (Search, Filter, Pagination)
+// ৪. Products Route (GET)
 app.get("/products", async (req, res) => {
   try {
-    const db = await connectToDatabase();
-    const {
-      brand,
-      rating,
-      salePrice,
-      page = 1,
-      limit = 10,
-      searchQuery,
-    } = req.query;
+    // আপনার ফাংশন অবজেক্ট রিটার্ন করে, তাই { db } ব্যবহার করতে হবে
+    const { db } = await connectToDatabase();
+
+    const { brand, rating, page = 1, limit = 10, searchQuery } = req.query;
 
     const products = await db.collection("products").find({}).toArray();
     let filtered = products;
 
-    // Filter by search (Handling both 'title' and 'name')
+    // Filter by search
     if (searchQuery && searchQuery.trim() !== "") {
       filtered = filtered.filter((p) =>
         (p.title || p.name || "")
@@ -165,14 +160,21 @@ app.get("/products", async (req, res) => {
 
     res.json({ success: true, data: result, total: filtered.length });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Backend GET Error:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Server Error: " + err.message,
+    });
   }
 });
+
+// ৫. Add Product Route (POST)
 app.post("/products", async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const productData = req.body;
 
+    // Validation
     if (!productData.title || !productData.salePrice || !productData.image) {
       return res.status(400).json({
         success: false,
@@ -196,10 +198,10 @@ app.post("/products", async (req, res) => {
       data: { ...newProduct, _id: result.insertedId },
     });
   } catch (err) {
-    console.error("Product Post Error:", err);
+    console.error("Product POST Error:", err.message);
     res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: "Internal Server Error: " + err.message,
     });
   }
 });
