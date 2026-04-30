@@ -116,7 +116,7 @@ app.post("/api/v1/login", async (req, res) => {
         userName: user.userName,
         pictureUrl: user.pictureUrl || "",
       },
-      process.env.JWT_SECRET || "fallback_secret_for_dev", // এখানে একটি ডিফল্ট ভ্যালু দিন
+      process.env.JWT_SECRET || "fallback_secret_for_dev",
       { expiresIn: process.env.EXPIRES_IN || "7d" },
     );
 
@@ -126,10 +126,58 @@ app.post("/api/v1/login", async (req, res) => {
   }
 });
 
+// 4. Firebase User Sync Route (Upsert)
+app.post("/api/v1/users/sync", async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const collection = db.collection("user");
+    const { uid, userName, email, pictureUrl } = req.body;
+
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+
+    // Upsert Logic: ইউজার থাকলে আপডেট করবে, না থাকলে নতুন তৈরি করবে
+    const result = await collection.findOneAndUpdate(
+      { email: email }, // filter by email
+      {
+        $set: {
+          uid,
+          userName,
+          pictureUrl,
+          lastLogin: new Date(),
+        },
+        $setOnInsert: { createdAt: new Date() }, // শুধুমাত্র নতুন ইউজারের জন্য
+      },
+      { upsert: true, returnDocument: "after" },
+    );
+
+    // ফ্রন্টএন্ডের জন্য একটি JWT টোকেন জেনারেট করুন (আপনার লগইন রাউটের মতো)
+    const token = jwt.sign(
+      {
+        email: email,
+        userName: userName,
+        pictureUrl: pictureUrl || "",
+      },
+      process.env.JWT_SECRET || "fallback_secret_for_dev",
+      { expiresIn: process.env.EXPIRES_IN || "7d" },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "User synced successfully",
+      token, // এই টোকেনটি ফ্রন্টএন্ডে localStorage এ সেভ হবে
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ৪. Products Route (GET)
 app.get("/products", async (req, res) => {
   try {
-    // আপনার ফাংশন অবজেক্ট রিটার্ন করে, তাই { db } ব্যবহার করতে হবে
     const { db } = await connectToDatabase();
 
     const { brand, rating, page = 1, limit = 10, searchQuery } = req.query;
