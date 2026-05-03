@@ -13,7 +13,7 @@ const app = express();
 // Middlewares
 const allowedOrigins = [
   "https://cleaning-supplies-store-0.vercel.app",
-  "http://localhost:5000", // আপনার লোকাল ডেভেলপমেন্ট পোর্ট
+  "http://localhost:3000",
 ];
 
 app.use(
