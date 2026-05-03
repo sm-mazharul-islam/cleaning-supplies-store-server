@@ -172,21 +172,54 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-// --- ৬. ফ্ল্যাশ সেল ডাটা গেট করা ---
+// --- ৬. সকল ফ্ল্যাশ সেল ডাটা গেট করা (সংশোধিত) ---
+// controllers/product.controller.js
+
 const getFlashSale = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
+
+    // ছবি অনুযায়ী আপনার কালেকশনের নাম 'flash-sale'
+    // এই কালেকশনে থাকা সব ডাটা নিয়ে আসা হচ্ছে
     const data = await db
-      .collection("products")
-      .find({ flashSale: true })
-      .limit(4)
+      .collection("flash-sale")
+      .find({})
+      .sort({ createdAt: -1 })
       .toArray();
-    res.status(200).json({ success: true, data });
+
+    console.log("Flash Sale Collection Data:", data.length);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+const getFlashSaleDetails = async (req, res) => {
+  try {
+    const { db } = await connectToDatabase();
+    const { id } = req.params;
+
+    // flash-sale কালেকশন থেকে আইডি দিয়ে ডাটা খোঁজা
+    const result = await db.collection("flash-sale").findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Detail not found" });
+    }
+
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 // --- ৭. নতুন অর্ডার তৈরি করা ---
 const createOrder = async (req, res) => {
   try {
@@ -515,6 +548,7 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getFlashSale,
+  getFlashSaleDetails,
   getAdminStats,
   createOrder,
   getAllOrders,
@@ -522,5 +556,5 @@ module.exports = {
   deleteUserOrder,
   updateOrderStatus,
   adminDeleteOrder,
-  getUserStats, // Exported new function
+  getUserStats,
 };

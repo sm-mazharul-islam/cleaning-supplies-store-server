@@ -1,26 +1,39 @@
 const express = require("express");
 const cors = require("cors");
 
-// রাউট ইমপোর্ট সেকশন
 const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
 const testimonialRoutes = require("./routes/testimonial.routes");
 const commentRoutes = require("./routes/comment.routes");
-// নিশ্চিত করুন যে আপনার ফাইলটির নাম user.route.js এবং সেটি routes ফোল্ডারে আছে
+
 const userRoutes = require("./routes/user.routes");
 
 const app = express();
 
 // Middlewares
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+const allowedOrigins = [
+  "https://cleaning-supplies-store-0.vercel.app",
+  "http://localhost:5000", // আপনার লোকাল ডেভেলপমেন্ট পোর্ট
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
 
 // API Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
 app.use("/api/v1/comments", commentRoutes);
-// ইউজার প্রোফাইল এবং সিঙ্ক এর জন্য এই রুটটি কাজ করবে
 app.use("/api/v1/user", userRoutes);
 
 // Root Route

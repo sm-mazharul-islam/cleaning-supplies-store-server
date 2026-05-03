@@ -11,6 +11,7 @@ const {
   addProduct,
   updateProduct,
   getFlashSale,
+  getFlashSaleDetails,
   deleteProduct,
   getAdminStats,
   createOrder,
@@ -33,15 +34,17 @@ const { verifyToken, verifyAdmin } = require("../middlewares/auth.middleware");
 // FIXED ROUTE ORDERING (Static Routes First)
 // ==========================================
 
-// --- ১. Flash Sale Products (Public Access) ---
+// ---  Flash Sale Products (Public Access) ---
 router.get("/flash-sale", getFlashSale);
 
-// --- ২. Dynamic Admin Stats (Analytics) ---
-// এটি অবশ্যই /:id এর উপরে থাকতে হবে
+router.get("/flash-sale/:id", getFlashSaleDetails);
+
+// ---  Dynamic Admin Stats (Analytics) ---
+
 router.get("/admin-stats", verifyToken, verifyAdmin, getAdminStats);
 
-// --- ৩. Dynamic User Stats (Personal Analytics) ---
-// ইউজার তার নিজের ইমেইল দিয়ে নিজের স্ট্যাটাস দেখতে পারবে
+// --- Dynamic User Stats (Personal Analytics) ---
+
 // URL: GET /api/v1/products/user-stats/:email
 router.get("/user-stats/:email", verifyToken, getUserStats);
 
@@ -49,7 +52,7 @@ router.get("/user-stats/:email", verifyToken, getUserStats);
 // URL: GET /api/v1/products/orders
 router.get("/orders", verifyToken, verifyAdmin, getAllOrders);
 
-// --- ৫. View Specific User's Orders ---
+// --- View Specific User's Orders ---
 // URL: GET /api/v1/products/orders/user/:email
 router.get("/orders/user/:email", verifyToken, getUserOrders);
 
@@ -77,7 +80,7 @@ router.delete("/admin/orders/:id", verifyToken, verifyAdmin, adminDeleteOrder);
 router.get("/", getProducts);
 
 // View Specific Product by ID (Public)
-// এটি সবার নিচে রাখা হয়েছে যেন অন্য স্ট্যাটিক ইউআরএল গুলোকে ID মনে না করে
+
 router.get("/:id", getProductById);
 
 // Add a New Product (Admin Only)
