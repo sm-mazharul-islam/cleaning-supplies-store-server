@@ -11,23 +11,8 @@ const userRoutes = require("./routes/user.routes");
 const app = express();
 
 // Middlewares
-const allowedOrigins = [
-  "https://cleaning-supplies-store-0.vercel.app",
-  "http://localhost:3000",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  }),
-);
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
 
 // API Routes
 app.use("/api/v1/auth", authRoutes);
