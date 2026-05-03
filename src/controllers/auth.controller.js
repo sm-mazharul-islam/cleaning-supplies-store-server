@@ -2,21 +2,21 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const connectToDatabase = require("../config/db");
 
-// ১. রেজিস্ট্রেশন কন্ট্রোলার (Manual Email/Password)
+// ১. রেজিস্ট্রেশন কন্ট্রোলার
 const register = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const collection = db.collection("user");
-    const { userName, pictureUrl, email, password } = req.body;
 
-    // ভ্যালিডেশন
+    const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
+    const { userName, pictureUrl, password } = req.body;
+
     if (!email || !password) {
       return res
         .status(400)
         .json({ success: false, message: "Email and Password required" });
     }
 
-    // ইউজার অলরেডি আছে কিনা চেক করা
     const existingUser = await collection.findOne({ email });
     if (existingUser) {
       return res
@@ -24,14 +24,15 @@ const register = async (req, res) => {
         .json({ success: false, message: "User already exists" });
     }
 
-    // পাসওয়ার্ড হ্যাশ করা
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ডিফল্টভাবে role: "user" যোগ করা হয়েছে
     const result = await collection.insertOne({
       userName,
       pictureUrl,
       email,
       password: hashedPassword,
+      role: "user", // Default Role
       createdAt: new Date(),
     });
 
@@ -45,22 +46,23 @@ const register = async (req, res) => {
   }
 };
 
-// ২. লগইন কন্ট্রোলার (Manual Email/Password)
+// ২. লগইন কন্ট্রোলার
 const login = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const collection = db.collection("user");
-    const { email, password } = req.body;
 
-    // ইউজার খুঁজে বের করা
-    const user = await collection.findOne({ email });
+    const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
+    const { password } = req.body;
+
+    const user = await collection.findOne({ email: email });
+
     if (!user) {
       return res
         .status(401)
         .json({ success: false, message: "User not found" });
     }
 
-    // পাসওয়ার্ড চেক করা
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res
@@ -68,11 +70,13 @@ const login = async (req, res) => {
         .json({ success: false, message: "Invalid password" });
     }
 
-    // টোকেন জেনারেট করা
+    // টোকেনের ভেতরে role: user.role যোগ করা হয়েছে
     const token = jwt.sign(
       {
+        id: user._id,
         email: user.email,
         userName: user.userName,
+        role: user.role || "user", // Role included
         pictureUrl: user.pictureUrl || "",
       },
       process.env.JWT_SECRET || "fallback_secret_for_dev",
@@ -85,12 +89,14 @@ const login = async (req, res) => {
   }
 };
 
-// ৩. ফায়ারবেস ইউজার সিঙ্ক কন্ট্রোলার (Upsert)
+// ৩. ফায়ারবেস ইউজার সিঙ্ক কন্ট্রোলার
 const syncUser = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const collection = db.collection("user");
-    const { uid, userName, email, pictureUrl } = req.body;
+
+    const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
+    const { uid, userName, pictureUrl } = req.body;
 
     if (!email) {
       return res
@@ -98,8 +104,10 @@ const syncUser = async (req, res) => {
         .json({ success: false, message: "Email is required" });
     }
 
-    // Upsert: থাকলে আপডেট করবে, না থাকলে ক্রিয়েট করবে
-    await collection.findOneAndUpdate(
+    // ইউজার খুঁজে দেখা
+    const existingUser = await collection.findOne({ email });
+
+    const updatedUser = await collection.findOneAndUpdate(
       { email: email },
       {
         $set: {
@@ -108,16 +116,22 @@ const syncUser = async (req, res) => {
           pictureUrl,
           lastLogin: new Date(),
         },
-        $setOnInsert: { createdAt: new Date() },
+        $setOnInsert: {
+          createdAt: new Date(),
+          role: "user", // নতুন সিঙ্ক হওয়া ইউজারের জন্য ডিফল্ট রোল
+        },
       },
       { upsert: true, returnDocument: "after" },
     );
 
-    // টোকেন জেনারেট
+    const finalUser = updatedUser.value || updatedUser;
+
+    // টোকেনে ইউজার ডাটা এবং রোল পাঠানো হচ্ছে
     const token = jwt.sign(
       {
         email: email,
         userName: userName,
+        role: finalUser?.role || "user", // Role included from DB
         pictureUrl: pictureUrl || "",
       },
       process.env.JWT_SECRET || "fallback_secret_for_dev",
@@ -134,9 +148,4 @@ const syncUser = async (req, res) => {
   }
 };
 
-// ফাংশনগুলো এক্সপোর্ট করা
-module.exports = {
-  register,
-  login,
-  syncUser,
-};
+module.exports = { register, login, syncUser };
