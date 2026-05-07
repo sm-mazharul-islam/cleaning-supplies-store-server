@@ -1,10 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-/**
- * Controller Imports
- * All logic for products and orders is handled in the product controller.
- */
 const {
   getProducts,
   getProductById,
@@ -20,14 +16,9 @@ const {
   deleteUserOrder,
   updateOrderStatus,
   adminDeleteOrder,
-  getUserStats, // নতুন ফাংশনটি ইমপোর্ট করা হলো
+  getUserStats,
 } = require("../controllers/product.controller");
 
-/**
- * Middleware Imports
- * verifyToken: Validates JWT and attaches user data to req.user
- * verifyAdmin: Ensures the authenticated user has an 'admin' role
- */
 const { verifyToken, verifyAdmin } = require("../middlewares/auth.middleware");
 
 // ==========================================
@@ -48,7 +39,6 @@ router.get("/admin-stats", verifyToken, verifyAdmin, getAdminStats);
 // URL: GET /api/v1/products/user-stats/:email
 router.get("/user-stats/:email", verifyToken, getUserStats);
 
-// --- ৪. View All Customer Orders (Master View - Admin Only) ---
 // URL: GET /api/v1/products/orders
 router.get("/orders", verifyToken, verifyAdmin, getAllOrders);
 
