@@ -1,6 +1,6 @@
 const connectToDatabase = require("../config/db");
 
-// --- নতুন রিভিউ তৈরি করা (POST) ---
+// ---  (POST) ---
 exports.createTestimonial = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -8,7 +8,6 @@ exports.createTestimonial = async (req, res) => {
 
     const { comment, rating } = req.body;
 
-    // মিডলওয়্যার থেকে ইউজার ডাটা চেক করা
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -38,11 +37,11 @@ exports.createTestimonial = async (req, res) => {
   }
 };
 
-// --- সব রিভিউ দেখা (GET) ---
+//  (GET) ---
 exports.getTestimonials = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
-    // সব রিভিউ নিয়ে আসা এবং নতুনগুলো আগে দেখানো (Sorting)
+    //(Sorting)
     const result = await db
       .collection("testimonials")
       .find({})
