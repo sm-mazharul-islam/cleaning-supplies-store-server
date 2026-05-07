@@ -2,7 +2,6 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const connectToDatabase = require("../config/db");
 
-// ১. রেজিস্ট্রেশন কন্ট্রোলার
 const register = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -26,7 +25,6 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ডিফল্টভাবে role: "user" যোগ করা হয়েছে
     const result = await collection.insertOne({
       userName,
       pictureUrl,
@@ -46,7 +44,6 @@ const register = async (req, res) => {
   }
 };
 
-// ২. লগইন কন্ট্রোলার
 const login = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -70,7 +67,6 @@ const login = async (req, res) => {
         .json({ success: false, message: "Invalid password" });
     }
 
-    // টোকেনের ভেতরে role: user.role যোগ করা হয়েছে
     const token = jwt.sign(
       {
         id: user._id,
@@ -89,7 +85,6 @@ const login = async (req, res) => {
   }
 };
 
-// ৩. ফায়ারবেস ইউজার সিঙ্ক কন্ট্রোলার
 const syncUser = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -104,7 +99,6 @@ const syncUser = async (req, res) => {
         .json({ success: false, message: "Email is required" });
     }
 
-    // ইউজার খুঁজে দেখা
     const existingUser = await collection.findOne({ email });
 
     const updatedUser = await collection.findOneAndUpdate(
@@ -118,7 +112,7 @@ const syncUser = async (req, res) => {
         },
         $setOnInsert: {
           createdAt: new Date(),
-          role: "user", // নতুন সিঙ্ক হওয়া ইউজারের জন্য ডিফল্ট রোল
+          role: "user",
         },
       },
       { upsert: true, returnDocument: "after" },
@@ -126,7 +120,6 @@ const syncUser = async (req, res) => {
 
     const finalUser = updatedUser.value || updatedUser;
 
-    // টোকেনে ইউজার ডাটা এবং রোল পাঠানো হচ্ছে
     const token = jwt.sign(
       {
         email: email,
