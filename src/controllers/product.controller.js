@@ -1,7 +1,6 @@
 const { ObjectId } = require("mongodb");
 const connectToDatabase = require("../config/db");
 
-// --- ১. সব প্রোডাক্ট দেখা (Pagination & Search) ---
 const getProducts = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -44,7 +43,6 @@ const getProducts = async (req, res) => {
   }
 };
 
-// --- ২. আইডি দিয়ে নির্দিষ্ট প্রোডাক্ট খুঁজে বের করা ---
 const getProductById = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -72,7 +70,6 @@ const getProductById = async (req, res) => {
   }
 };
 
-// --- ৩. নতুন প্রোডাক্ট যোগ করা ---
 const addProduct = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -101,7 +98,6 @@ const addProduct = async (req, res) => {
   }
 };
 
-// --- ৪. প্রোডাক্ট আপডেট করা ---
 const updateProduct = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -146,7 +142,6 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// --- ৫. প্রোডাক্ট ডিলিট করা ---
 const deleteProduct = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -172,15 +167,9 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-// --- ৬. সকল ফ্ল্যাশ সেল ডাটা গেট করা (সংশোধিত) ---
-// controllers/product.controller.js
-
 const getFlashSale = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
-
-    // ছবি অনুযায়ী আপনার কালেকশনের নাম 'flash-sale'
-    // এই কালেকশনে থাকা সব ডাটা নিয়ে আসা হচ্ছে
     const data = await db
       .collection("flash-sale")
       .find({})
@@ -204,7 +193,6 @@ const getFlashSaleDetails = async (req, res) => {
     const { db } = await connectToDatabase();
     const { id } = req.params;
 
-    // flash-sale কালেকশন থেকে আইডি দিয়ে ডাটা খোঁজা
     const result = await db.collection("flash-sale").findOne({
       _id: new ObjectId(id),
     });
@@ -220,7 +208,6 @@ const getFlashSaleDetails = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-// --- ৭. নতুন অর্ডার তৈরি করা ---
 const createOrder = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -249,7 +236,6 @@ const createOrder = async (req, res) => {
   }
 };
 
-// --- ৮. সব অর্ডার দেখা (অ্যাডমিনদের জন্য) ---
 const getAllOrders = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -264,7 +250,6 @@ const getAllOrders = async (req, res) => {
   }
 };
 
-// --- ৯. স্পেসিফিক ইউজারের অর্ডার দেখা ---
 const getUserOrders = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -289,7 +274,6 @@ const getUserOrders = async (req, res) => {
   }
 };
 
-// --- ১০. ইউজার দ্বারা অর্ডার ডিলিট/ক্যান্সেল করা ---
 const deleteUserOrder = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -343,7 +327,6 @@ const deleteUserOrder = async (req, res) => {
   }
 };
 
-// --- ১১. অ্যাডমিন দ্বারা অর্ডার স্ট্যাটাস আপডেট ---
 const updateOrderStatus = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -395,7 +378,6 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-// --- ১২. অ্যাডমিন দ্বারা অর্ডার ডিলিট করা ---
 const adminDeleteOrder = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -425,7 +407,6 @@ const adminDeleteOrder = async (req, res) => {
   }
 };
 
-// --- ১৩. ডাইনামিক অ্যাডমিন ড্যাশবোর্ড স্ট্যাটস ---
 const getAdminStats = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -486,14 +467,10 @@ const getAdminStats = async (req, res) => {
   }
 };
 
-// --- ১৪. ইউজার পার্সোনাল স্ট্যাটস (New Feature Implementation) ---
-// controllers/product.controller.js এ এই ফাংশনটি আপডেট করুন
 const getUserStats = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
     const { email } = req.params;
-
-    // ১. ইউজারের সকল অর্ডার এবং টোটাল খরচ
     const userOrders = await db
       .collection("orders")
       .find({ userEmail: email })
@@ -506,15 +483,11 @@ const getUserStats = async (req, res) => {
     const pendingOrders = userOrders.filter(
       (order) => order.status === "pending",
     ).length;
-
-    // ২. কমেন্ট কাউন্ট (comments কালেকশন থেকে)
-    // নিশ্চিত করুন ফ্রন্টএন্ড থেকে কমেন্ট করার সময় 'userEmail' ফিল্ডটি পাঠানো হচ্ছে
     const totalComments = await db.collection("comments").countDocuments({
       userEmail: email,
       isDeleted: false,
     });
 
-    // ৩. রিসেন্ট ৩টি অর্ডার
     const recentOrders = await db
       .collection("orders")
       .find({ userEmail: email })
