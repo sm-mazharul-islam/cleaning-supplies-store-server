@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const connectToDatabase = require("../config/db");
 const { ObjectId } = require("mongodb");
 
-// --- ১. ইউজার সিঙ্ক (Login/Register via Google or Firebase) ---
+// --- (Login/Register via Google or Firebase) ---
 const syncUser = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -49,7 +49,6 @@ const syncUser = async (req, res) => {
   }
 };
 
-// --- ২. প্রোফাইল ডিটেইলস গেট করা ---
 const getProfile = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -70,7 +69,7 @@ const getProfile = async (req, res) => {
   }
 };
 
-// --- ৩. প্রোফাইল আপডেট করা (Edit Profile) ---
+// ---(Edit Profile) ---
 const updateProfile = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -115,7 +114,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// --- ৪. ম্যানুয়াল লগইন ---
 const login = async (req, res) => {
   res.status(200).json({
     success: true,
@@ -123,7 +121,6 @@ const login = async (req, res) => {
   });
 };
 
-// --- ৫. নিজের প্রোফাইল ডিলিট করা ---
 const deleteProfile = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -149,7 +146,7 @@ const deleteProfile = async (req, res) => {
 
 // ================= ADMIN POWERS =================
 
-// --- ৬. সকল ইউজার গেট করা (Admin Only) ---
+// ---  (Admin Only) ---
 const getAllUsers = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -160,7 +157,7 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-// --- ৭. ইউজারের রোল পরিবর্তন করা (Admin Only) ---
+// --- (Admin Only) ---
 const updateUserRole = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -188,7 +185,7 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-// --- ৮. অন্য ইউজার ডিলিট করা (Admin Only) ---
+// ---(Admin Only) ---
 const adminDeleteUser = async (req, res) => {
   try {
     const { db } = await connectToDatabase();
@@ -219,7 +216,7 @@ module.exports = {
   updateProfile,
   login,
   deleteProfile,
-  getAllUsers, // New
-  updateUserRole, // New
-  adminDeleteUser, // New
+  getAllUsers,
+  updateUserRole,
+  adminDeleteUser,
 };
