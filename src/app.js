@@ -5,6 +5,7 @@ const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
 const testimonialRoutes = require("./routes/testimonial.routes");
 const commentRoutes = require("./routes/comment.routes");
+const categoryRoutes = require("./routes/category.routes");
 
 const userRoutes = require("./routes/user.routes");
 
@@ -20,6 +21,7 @@ app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/testimonials", testimonialRoutes);
 app.use("/api/v1/comments", commentRoutes);
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/categories", categoryRoutes);
 
 // Root Route
 app.get("/", (req, res) => {
