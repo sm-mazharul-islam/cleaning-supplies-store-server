@@ -6,12 +6,12 @@ const productRoutes = require("./routes/product.routes");
 const testimonialRoutes = require("./routes/testimonial.routes");
 const commentRoutes = require("./routes/comment.routes");
 const categoryRoutes = require("./routes/category.routes");
-
 const userRoutes = require("./routes/user.routes");
+const errorHandler = require("./middlewares/error.middleware");
 
 const app = express();
 
-// Middlewares
+// Global Middlewares
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
@@ -26,7 +26,7 @@ app.use("/api/v1/categories", categoryRoutes);
 // Root Route
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to Besa Luxury Rental API",
+    message: "Welcome to Cleaning Supplies Store API",
     status: "Active",
     version: "1.0.0",
   });
@@ -39,5 +39,8 @@ app.use((req, res) => {
     message: "Requested URL Not Found",
   });
 });
+
+// Global Error Handler
+app.use(errorHandler);
 
 module.exports = app;
