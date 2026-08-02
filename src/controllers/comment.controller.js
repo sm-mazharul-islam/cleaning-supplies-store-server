@@ -1,20 +1,13 @@
-const { ObjectId } = require("mongodb");
-const connectToDatabase = require("../config/db");
+const Comment = require("../models/comment.model");
 
 const addComment = async (req, res) => {
   try {
-    const { db } = await connectToDatabase();
-    const newComment = {
+    const newComment = await Comment.create({
       ...req.body,
-      productId: new ObjectId(req.body.productId),
-      createdAt: new Date(),
-      replies: [],
       isDeleted: false,
-    };
-    const result = await db.collection("comments").insertOne(newComment);
-    res
-      .status(201)
-      .send({ success: true, data: { ...newComment, _id: result.insertedId } });
+      replies: [],
+    });
+    res.status(201).send({ success: true, data: newComment });
   } catch (err) {
     res.status(500).send({ message: err.message });
   }
@@ -22,12 +15,11 @@ const addComment = async (req, res) => {
 
 const getCommentsByProduct = async (req, res) => {
   try {
-    const { db } = await connectToDatabase();
-    const result = await db
-      .collection("comments")
-      .find({ productId: new ObjectId(req.params.productId), isDeleted: false })
-      .sort({ createdAt: -1 })
-      .toArray();
+    const result = await Comment.find({
+      productId: req.params.productId,
+      isDeleted: false,
+    }).sort({ createdAt: -1 });
+
     res.send({ success: true, data: result });
   } catch (err) {
     res.status(500).send({ message: err.message });
@@ -36,15 +28,15 @@ const getCommentsByProduct = async (req, res) => {
 
 const addReply = async (req, res) => {
   try {
-    const { db } = await connectToDatabase();
     const { userName, pictureUrl, comment } = req.body;
     const newReply = { userName, pictureUrl, comment, createdAt: new Date() };
-    const result = await db
-      .collection("comments")
-      .updateOne(
-        { _id: new ObjectId(req.params.commentId) },
-        { $push: { replies: newReply } },
-      );
+
+    const result = await Comment.findByIdAndUpdate(
+      req.params.commentId,
+      { $push: { replies: newReply } },
+      { new: true }
+    );
+
     res.send({ success: true, data: newReply });
   } catch (err) {
     res.status(500).send({ success: false, message: err.message });
