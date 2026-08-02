@@ -1,28 +1,24 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const mongoose = require("mongoose");
 require("dotenv").config();
 
-let cachedClient = null;
-let cachedDb = null;
+let isConnected = false;
 
 async function connectToDatabase() {
-  if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return { client: mongoose.connection.client, db: mongoose.connection.db };
   }
 
-  const client = new MongoClient(process.env.MONGODB_URI, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    },
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI is not defined in environment variables");
+  }
+
+  await mongoose.connect(uri, {
+    dbName: "cleaning-supplies-store",
   });
 
-  await client.connect();
-  const db = client.db("cleaning-supplies-store");
-
-  cachedClient = client;
-  cachedDb = db;
-  return { client, db };
+  isConnected = true;
+  return { client: mongoose.connection.client, db: mongoose.connection.db };
 }
 
 module.exports = connectToDatabase;
