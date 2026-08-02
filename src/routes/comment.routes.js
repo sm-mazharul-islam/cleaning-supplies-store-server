@@ -1,10 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {
-  addComment,
-  getCommentsByProduct,
-  addReply,
-} = require("../controllers/comment.controller");
+const { addComment, getCommentsByProduct, addReply } = require("../controllers/comment.controller");
 
 router.post("/", addComment);
 router.get("/:productId", getCommentsByProduct);
