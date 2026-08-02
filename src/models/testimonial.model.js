@@ -2,15 +2,14 @@ const mongoose = require("mongoose");
 
 const testimonialSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: String },
     userName: { type: String, required: true },
-    userImage: { type: String },
+    userImage: { type: String, default: "" },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true },
-    // status: 'pending' (User side) or 'approved' (Admin side)
     status: { type: String, enum: ["pending", "approved"], default: "pending" },
   },
-  { timestamps: true },
+  { timestamps: true, collection: "testimonials" }
 );
 
 module.exports = mongoose.model("Testimonial", testimonialSchema);
