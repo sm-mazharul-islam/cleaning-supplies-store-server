@@ -1,9 +1,5 @@
 const jwt = require("jsonwebtoken");
 
-/**
- * verifyToken: Validates the JWT from the Authorization header
- * and attaches the decoded user data to the request object.
- */
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -21,7 +17,7 @@ const verifyToken = (req, res, next) => {
       token,
       process.env.JWT_SECRET || "fallback_secret",
     );
-    req.user = decoded; // Passing decoded user data (e.g., email, role) to the next function
+    req.user = decoded;
     next();
   } catch (err) {
     return res.status(403).json({
@@ -31,12 +27,7 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-/**
- * verifyAdmin: Checks if the user has an admin role.
- * This must be used AFTER verifyToken.
- */
 const verifyAdmin = (req, res, next) => {
-  // Ensure user exists and has the 'admin' role
   if (req.user && req.user.role === "admin") {
     next();
   } else {
@@ -47,8 +38,4 @@ const verifyAdmin = (req, res, next) => {
   }
 };
 
-// Exporting as an object so they can be destructured in routes
-module.exports = {
-  verifyToken,
-  verifyAdmin,
-};
+module.exports = { verifyToken, verifyAdmin };
